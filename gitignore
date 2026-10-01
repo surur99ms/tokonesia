@@ -1,5 +1,5 @@
 # Konfigurasi Database / Kredensial Per-Server
-koneksi.php
+config.php
 
 # Folder Uploads / Media
 media/
