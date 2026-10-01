@@ -7,7 +7,7 @@ require_once __DIR__ . '/includes/auth.php';
 
 // --- Ambil data dari DB ---
 $heroTitle    = getSetting('hero_title',    'Belanja Lebih Mahal, Lebih Sulit!');
-$heroSubtitle = getSetting('hero_subtitle', 'Temukan ribuan produk pilihan dengan harga terbaik dan pengiriman cepat ke seluruh Indonesia.');
+$heroSubtitle = getSetting('hero_subtitle', 'Temukan ribuan produk pilihan dengan harga terbaik dan pengiriman cepat ke seluruh Malaysia.');
 $waNumber     = getSetting('whatsapp_number', '6281234567890');
 $siteName     = getSetting('site_name', 'Tokonesia');
 $featuredProds = getFeaturedProducts(6);
