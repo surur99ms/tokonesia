@@ -5,9 +5,9 @@
 
 // --- Koneksi Database ---
 define('DB_HOST',     'localhost');
-define('DB_USER',     'root');
-define('DB_PASS',     ''); // Default XAMPP
-define('DB_NAME',     'tokonesia');
+define('DB_USER',     'jsnimmnm_tokonesia');
+define('DB_PASS',     '@tokonesia2026');
+define('DB_NAME',     'jsnimmnm_tokonesia');
 define('DB_CHARSET',  'utf8mb4');
 
 // --- Pengaturan Aplikasi ---
