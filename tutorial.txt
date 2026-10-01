@@ -1,0 +1,31 @@
+TUTORIAL PENGGUNAAN APLIKASI TOKONESIA (SINGKAT)
+
+A. UNTUK PENGGUNA / PELANGGAN
+1. Pendaftaran & Login
+   - Akses halaman utama Tokonesia.
+   - Klik "Register" untuk mendaftar akun baru, atau "Login" jika sudah memiliki akun.
+
+2. Mencari & Memilih Produk
+   - Cari produk yang diinginkan melalui kotak pencarian atau pilih dari daftar produk.
+   - Klik pada gambar atau nama produk untuk melihat detail lengkap produk (harga, stok, deskripsi).
+
+3. Keranjang Belanja (Cart)
+   - Pada halaman detail produk, klik "Tambah ke Keranjang" (Add to Cart).
+   - Anda dapat melihat ringkasan belanjaan Anda di menu "Cart".
+
+4. Checkout & Pembayaran
+   - Pada menu "Cart", klik "Checkout".
+   - Isi atau pastikan data alamat pengiriman sudah benar.
+   - Selesaikan pesanan dan lakukan pembayaran sesuai instruksi.
+
+5. Melacak Pesanan (Track)
+   - Jika pesanan sudah berhasil dibuat, Anda dapat mengecek status pengiriman di menu "Track" menggunakan nomor resi atau ID Pesanan.
+
+
+B. UNTUK ADMINISTRATOR
+1. Login Admin
+   - Akses panel admin melalui folder `/admin` dan masuk menggunakan akun admin.
+2. Mengelola Pesanan & Produk
+   - Di Dashboard, admin bisa memproses pesanan masuk, menambah/mengedit produk, hingga mengatur pengaturan toko.
+
+Selamat berbelanja dan mengelola toko dengan Tokonesia!
