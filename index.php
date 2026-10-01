@@ -35,7 +35,7 @@ $baseUrl = BASE_URL;
       <div class="col-lg-6">
         <div class="hero-badge">
           <i class="bi bi-lightning-charge-fill"></i>
-          Flash Sale Aktif — Diskon s/d 60%
+          Flash Sale Aktif — Diskon s/d 100%
         </div>
 
         <h1 class="hero-title"><?= e($heroTitle) ?></h1>
