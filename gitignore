@@ -1,0 +1,20 @@
+# Konfigurasi Database / Kredensial Per-Server
+koneksi.php
+
+# Folder Uploads / Media
+media/
+uploads/
+
+# Backup & Log
+backup/
+*.log
+
+# SQL Dumps (sekarang diletakkan di dalam docs/)
+docs/
+
+# Folder dependencies (jika pakai composer/npm nantinya)
+vendor/
+node_modules/
+
+# Script server-side
+autodeploy.sh
