@@ -21,6 +21,5 @@ deployment:
     - /bin/chmod 750 "$DEPLOYPATH"
 
     # 4) JALANKAN OTOMATIS DATABASE MIGRATION
-    #    Setelah semua file baru disalin (Langkah 2), kita perintahkan PHP untuk 
-    #    mengeksekusi migrasi yang ada (jika ada file migrasi baru).
-    - /usr/local/bin/php "$DEPLOYPATH/migrate.php" migrate
+    #    Simpan log hasilnya ke file migration.log agar bisa dicek!
+    - /opt/cpanel/ea-php81/root/usr/bin/php $HOME/tokonesia.corefive.my.id/migrate.php migrate > $HOME/tokonesia.corefive.my.id/migration.log 2>&1
