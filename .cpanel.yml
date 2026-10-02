@@ -1,25 +1,28 @@
 ---
 deployment:
   tasks:
-    - export REPO=$HOME/repositories/tokonesia
-    - export DEPLOYPATH=$HOME/tokonesia.corefive.my.id/
+    - |
+      export REPO=$HOME/repositories/tokonesia
+      export DEPLOYPATH=$HOME/tokonesia.corefive.my.id
 
-    # 1) Tarik commit terbaru ke repo asli di server.
-    #    (cPanel menjalankan tasks ini dari salinan sementara, jadi kita
-    #     sebut path repo aslinya secara eksplisit.) Dengan langkah ini,
-    #     satu kali "Deploy" = Update from Remote + Deploy sekaligus,
-    #     sehingga bisa dipicu otomatis lewat API/GitHub Actions.
-    - cd "$REPO" && git fetch -q origin main && git reset -q --hard origin/main
+      # 1) Tarik commit terbaru ke repo lokal di cPanel
+      if [ -d "$REPO/.git" ]; then
+        cd "$REPO" && git fetch -q origin main && git reset -q --hard origin/main
+      fi
 
-    # 2) Salin ke docroot. Hosting ini tidak punya rsync -> pakai tar.
-    #    --no-overwrite-dir  : jangan ubah permission direktori yang sudah ada
-    #    --no-same-permissions: mode file ikut umask akun
-    #    tar tidak pernah menghapus -> database.php, media/, backup/, tmp/ aman.
-    - cd "$REPO" && /bin/tar -cf - --exclude='.git' --exclude='.github' --exclude='.cpanel.yml' --exclude='.gitignore' --exclude='.gitattributes' . | ( cd "$DEPLOYPATH" && /bin/tar -xf - --no-overwrite-dir --no-same-permissions )
+      # 2) Salin file ke folder website (docroot)
+      if [ -d "$REPO" ] && [ -d "$DEPLOYPATH" ]; then
+        cd "$REPO" && /bin/tar -cf - --exclude='.git' --exclude='.github' --exclude='.cpanel.yml' --exclude='.gitignore' --exclude='.gitattributes' . | ( cd "$DEPLOYPATH" && /bin/tar -xf - --no-overwrite-dir --no-same-permissions )
+      fi
 
-    # 3) Pengaman: kunci permission docroot ke 750 (standar cPanel).
-    - /bin/chmod 750 "$DEPLOYPATH"
+      # 3) Kunci permission folder website
+      [ -d "$DEPLOYPATH" ] && /bin/chmod 750 "$DEPLOYPATH"
 
-    # 4) JALANKAN OTOMATIS DATABASE MIGRATION
-    #    Simpan log hasilnya ke file migration.log agar bisa dicek!
-    - /opt/cpanel/ea-php81/root/usr/bin/php $HOME/tokonesia.corefive.my.id/migrate.php migrate > $HOME/tokonesia.corefive.my.id/migration.log 2>&1
+      # 4) Jalankan Database Migration dan catat log
+      PHP_BIN=$(which php 2>/dev/null || echo "/usr/local/bin/php")
+      if [ -f "$DEPLOYPATH/migrate.php" ]; then
+        $PHP_BIN "$DEPLOYPATH/migrate.php" migrate > "$DEPLOYPATH/migration.log" 2>&1
+      else
+        echo "migrate.php tidak ditemukan di $DEPLOYPATH" > "$DEPLOYPATH/migration.log"
+      fi
+
