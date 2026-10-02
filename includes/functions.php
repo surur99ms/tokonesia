@@ -4,6 +4,7 @@
 // ============================================================
 
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/auto_migrate.php';
 
 /**
  * Format harga ke format Rupiah
