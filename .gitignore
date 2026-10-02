@@ -1,5 +1,5 @@
 # Konfigurasi Database / Kredensial Per-Server
-config.php
+includes/config.php
 
 # Folder Uploads / Media
 media/
@@ -9,8 +9,8 @@ uploads/
 backup/
 *.log
 
-# SQL Dumps (sekarang diletakkan di dalam docs/)
-docs/
+# SQL Dumps lama (sudah digantikan oleh sistem migrations)
+# docs/
 
 # Folder dependencies (jika pakai composer/npm nantinya)
 vendor/
@@ -18,3 +18,8 @@ node_modules/
 
 # Script server-side
 autodeploy.sh
+
+# ─── Migrasi SELALU ditrack oleh Git ───────────────────────
+!database/migrations/
+!database/migrations/*.php
+!migrate.php
