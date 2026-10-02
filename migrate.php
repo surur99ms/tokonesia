@@ -10,11 +10,10 @@
 // ============================================================
 
 define('MIGRATIONS_DIR', __DIR__ . '/database/migrations/');
-define('DB_HOST',    'localhost');
-define('DB_NAME',    'tokonesia');
-define('DB_USER',    'root');
-define('DB_PASS',    '');
-define('DB_CHARSET', 'utf8mb4');
+
+// Mengambil kredensial dari file konfigurasi utama
+// (Karena includes/config.php di-ignore Git, maka kredensial aman berbeda tiap server)
+require_once __DIR__ . '/includes/config.php';
 
 // ── 0. Helper Output ────────────────────────────────────────
 function out(string $msg, string $color = 'white'): void {
@@ -32,7 +31,7 @@ function out(string $msg, string $color = 'white'): void {
 }
 
 // ── 1. Koneksi PDO ──────────────────────────────────────────
-function getDB(): PDO {
+function getMigrationDB(): PDO {
     $dsn = sprintf('mysql:host=%s;dbname=%s;charset=%s', DB_HOST, DB_NAME, DB_CHARSET);
     try {
         $pdo = new PDO($dsn, DB_USER, DB_PASS, [
@@ -130,7 +129,7 @@ out("\n╔═══════════════════════�
 out("║   Tokonesia — Migration Runner   ║", 'bold');
 out("╚══════════════════════════════════╝\n", 'bold');
 
-$pdo = getDB();
+$pdo = getMigrationDB();
 ensureMigrationsTable($pdo);
 
 switch ($command) {
