@@ -1,4 +1,3 @@
-#!/usr/bin/env php
 <?php
 // ============================================================
 //  Tokonesia — Migration Runner
@@ -8,6 +7,10 @@
 //    php migrate.php status     → lihat status semua migrasi
 //    php migrate.php fresh      → DROP semua tabel lalu migrate ulang
 // ============================================================
+
+ini_set('display_errors', '1');
+ini_set('display_startup_errors', '1');
+error_reporting(E_ALL);
 
 define('MIGRATIONS_DIR', __DIR__ . '/database/migrations/');
 
@@ -27,27 +30,24 @@ function out(string $msg, string $color = 'white'): void {
     ];
     $reset = "\033[0m";
     $c = $colors[$color] ?? $reset;
-    echo $c . $msg . $reset . "\n";
+    // Jika dijalankan di browser tanpa terminal ANSI
+    if (php_sapi_name() !== 'cli' && empty($_SERVER['TERM'])) {
+        echo htmlspecialchars($msg) . "\n";
+    } else {
+        echo $c . $msg . $reset . "\n";
+    }
 }
 
 // ── 1. Koneksi PDO ──────────────────────────────────────────
 function getMigrationDB(): PDO {
-    $dsn = sprintf('mysql:host=%s;dbname=%s;charset=%s', DB_HOST, DB_NAME, DB_CHARSET);
-    try {
-        $pdo = new PDO($dsn, DB_USER, DB_PASS, [
-            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        ]);
-    } catch (PDOException $e) {
-        // Coba tanpa dbname untuk CREATE DATABASE
-        $dsn2 = sprintf('mysql:host=%s;charset=%s', DB_HOST, DB_CHARSET);
-        $pdo  = new PDO($dsn2, DB_USER, DB_PASS, [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        ]);
-        $pdo->exec("CREATE DATABASE IF NOT EXISTS `" . DB_NAME . "` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;");
-        $pdo->exec("USE `" . DB_NAME . "`;");
+    if (function_exists('getDB')) {
+        return getDB();
     }
-    return $pdo;
+    $dsn = sprintf('mysql:host=%s;dbname=%s;charset=%s', DB_HOST, DB_NAME, DB_CHARSET);
+    return new PDO($dsn, DB_USER, DB_PASS, [
+        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+    ]);
 }
 
 // ── 2. Tabel migrations (pencatat status) ───────────────────
@@ -68,7 +68,20 @@ function getMigrationFiles(): array {
         out('Folder migrations/ tidak ditemukan: ' . MIGRATIONS_DIR, 'red');
         exit(1);
     }
-    $files = glob(MIGRATIONS_DIR . '*.php');
+    $files = [];
+    $scanned = @scandir(MIGRATIONS_DIR);
+    if (is_array($scanned)) {
+        foreach ($scanned as $item) {
+            if (pathinfo($item, PATHINFO_EXTENSION) === 'php') {
+                $files[] = MIGRATIONS_DIR . $item;
+            }
+        }
+    } else {
+        $glob = @glob(MIGRATIONS_DIR . '*.php');
+        if (is_array($glob)) {
+            $files = $glob;
+        }
+    }
     sort($files);
     return $files;
 }
@@ -123,92 +136,97 @@ function rollbackMigration(PDO $pdo, string $name): void {
 // ════════════════════════════════════════════════════════════
 //  MAIN
 // ════════════════════════════════════════════════════════════
-$command = $argv[1] ?? 'status';
+$command = $argv[1] ?? $_GET['action'] ?? 'migrate';
 
 out("\n╔══════════════════════════════════╗", 'bold');
 out("║   Tokonesia — Migration Runner   ║", 'bold');
 out("╚══════════════════════════════════╝\n", 'bold');
 
-$pdo = getMigrationDB();
-ensureMigrationsTable($pdo);
+try {
+    $pdo = getMigrationDB();
+    ensureMigrationsTable($pdo);
 
-switch ($command) {
+    switch ($command) {
 
-    // ── migrate ─────────────────────────────────────────────
-    case 'migrate':
-        $files   = getMigrationFiles();
-        $applied = getApplied($pdo);
-        $pending = array_filter($files, fn($f) => !in_array(basename($f, '.php'), $applied));
+        // ── migrate ─────────────────────────────────────────────
+        case 'migrate':
+            $files   = getMigrationFiles();
+            $applied = getApplied($pdo);
+            $pending = array_filter($files, fn($f) => !in_array(basename($f, '.php'), $applied));
 
-        if (empty($pending)) {
-            out("Tidak ada migrasi baru yang perlu dijalankan.", 'green');
+            if (empty($pending)) {
+                out("Tidak ada migrasi baru yang perlu dijalankan. Semua up-to-date.", 'green');
+                break;
+            }
+
+            out("Menjalankan " . count($pending) . " migrasi baru...", 'cyan');
+            foreach ($pending as $file) {
+                applyMigration($pdo, $file);
+            }
+            out("\nSelesai! Semua migrasi berhasil diterapkan.\n", 'green');
             break;
-        }
 
-        out("Menjalankan " . count($pending) . " migrasi...", 'cyan');
-        foreach ($pending as $file) {
-            applyMigration($pdo, $file);
-        }
-        out("\nSelesai! Semua migrasi berhasil diterapkan.\n", 'green');
-        break;
-
-    // ── rollback ─────────────────────────────────────────────
-    case 'rollback':
-        $applied = getApplied($pdo);
-        if (empty($applied)) {
-            out("Tidak ada migrasi yang bisa di-rollback.", 'yellow');
+        // ── rollback ─────────────────────────────────────────────
+        case 'rollback':
+            $applied = getApplied($pdo);
+            if (empty($applied)) {
+                out("Tidak ada migrasi yang bisa di-rollback.", 'yellow');
+                break;
+            }
+            $last = end($applied);
+            rollbackMigration($pdo, $last);
+            out("\nRollback selesai.\n", 'green');
             break;
-        }
-        $last = end($applied);
-        rollbackMigration($pdo, $last);
-        out("\nRollback selesai.\n", 'green');
-        break;
 
-    // ── status ──────────────────────────────────────────────
-    case 'status':
-        $files   = getMigrationFiles();
-        $applied = getApplied($pdo);
+        // ── status ──────────────────────────────────────────────
+        case 'status':
+            $files   = getMigrationFiles();
+            $applied = getApplied($pdo);
 
-        out(sprintf("  %-40s  %s", 'Migration', 'Status'), 'bold');
-        out("  " . str_repeat('-', 55));
+            out(sprintf("  %-40s  %s", 'Migration', 'Status'), 'bold');
+            out("  " . str_repeat('-', 55));
 
-        foreach ($files as $file) {
-            $name   = basename($file, '.php');
-            $done   = in_array($name, $applied);
-            $status = $done ? '[✔ Diterapkan]' : '[✘ Belum     ]';
-            $color  = $done ? 'green' : 'yellow';
-            out(sprintf("  %-40s  %s", $name, $status), $color);
-        }
-        echo "\n";
-        break;
-
-    // ── fresh ───────────────────────────────────────────────
-    case 'fresh':
-        out("PERINGATAN: Semua tabel akan di-DROP!", 'red');
-        out("Ketik 'yes' untuk melanjutkan: ", 'yellow');
-        $confirm = trim(fgets(STDIN));
-        if ($confirm !== 'yes') {
-            out("Dibatalkan.", 'yellow');
+            foreach ($files as $file) {
+                $name   = basename($file, '.php');
+                $done   = in_array($name, $applied);
+                $status = $done ? '[✔ Diterapkan]' : '[✘ Belum     ]';
+                $color  = $done ? 'green' : 'yellow';
+                out(sprintf("  %-40s  %s", $name, $status), $color);
+            }
+            echo "\n";
             break;
-        }
 
-        // Rollback semua dari yang terbaru
-        $applied = array_reverse(getApplied($pdo));
-        foreach ($applied as $name) {
-            rollbackMigration($pdo, $name);
-        }
+        // ── fresh ───────────────────────────────────────────────
+        case 'fresh':
+            out("PERINGATAN: Semua tabel akan di-DROP!", 'red');
+            out("Ketik 'yes' untuk melanjutkan: ", 'yellow');
+            $confirm = trim(fgets(STDIN));
+            if ($confirm !== 'yes') {
+                out("Dibatalkan.", 'yellow');
+                break;
+            }
 
-        // Lalu migrate ulang
-        out("\nMenjalankan ulang semua migrasi...", 'cyan');
-        $files = getMigrationFiles();
-        foreach ($files as $file) {
-            applyMigration($pdo, $file);
-        }
-        out("\nFresh migration selesai.\n", 'green');
-        break;
+            // Rollback semua dari yang terbaru
+            $applied = array_reverse(getApplied($pdo));
+            foreach ($applied as $name) {
+                rollbackMigration($pdo, $name);
+            }
 
-    default:
-        out("Command tidak dikenal: {$command}", 'red');
-        out("Gunakan: migrate | rollback | status | fresh", 'yellow');
-        exit(1);
+            // Lalu migrate ulang
+            out("\nMenjalankan ulang semua migrasi...", 'cyan');
+            $files = getMigrationFiles();
+            foreach ($files as $file) {
+                applyMigration($pdo, $file);
+            }
+            out("\nFresh migration selesai.\n", 'green');
+            break;
+
+        default:
+            out("Command tidak dikenal: {$command}", 'red');
+            out("Gunakan: migrate | rollback | status | fresh", 'yellow');
+            exit(1);
+    }
+} catch (Throwable $e) {
+    out("FATAL ERROR: " . $e->getMessage() . " (" . basename($e->getFile()) . ":" . $e->getLine() . ")", 'red');
+    exit(1);
 }

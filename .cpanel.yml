@@ -1,28 +1,17 @@
 ---
 deployment:
   tasks:
-    - |
-      export REPO=$HOME/repositories/tokonesia
-      export DEPLOYPATH=$HOME/tokonesia.corefive.my.id
+    - export REPO=$HOME/repositories/tokonesia
+    - export DEPLOYPATH=$HOME/tokonesia.corefive.my.id
 
-      # 1) Tarik commit terbaru ke repo lokal di cPanel
-      if [ -d "$REPO/.git" ]; then
-        cd "$REPO" && git fetch -q origin main && git reset -q --hard origin/main
-      fi
+    # 1) Tarik commit terbaru ke repo lokal cPanel
+    - cd "$REPO" && git fetch -q origin main && git reset -q --hard origin/main
 
-      # 2) Salin file ke folder website (docroot)
-      if [ -d "$REPO" ] && [ -d "$DEPLOYPATH" ]; then
-        cd "$REPO" && /bin/tar -cf - --exclude='.git' --exclude='.github' --exclude='.cpanel.yml' --exclude='.gitignore' --exclude='.gitattributes' . | ( cd "$DEPLOYPATH" && /bin/tar -xf - --no-overwrite-dir --no-same-permissions )
-      fi
+    # 2) Salin semua file ke direktori website
+    - cd "$REPO" && /bin/tar -cf - --exclude='.git' --exclude='.github' --exclude='.cpanel.yml' --exclude='.gitignore' --exclude='.gitattributes' . | ( cd "$DEPLOYPATH" && /bin/tar -xf - --no-overwrite-dir --no-same-permissions )
 
-      # 3) Kunci permission folder website
-      [ -d "$DEPLOYPATH" ] && /bin/chmod 750 "$DEPLOYPATH"
+    # 3) Kunci permission folder website
+    - /bin/chmod 750 "$DEPLOYPATH"
 
-      # 4) Jalankan Database Migration dan catat log
-      PHP_BIN=$(which php 2>/dev/null || echo "/usr/local/bin/php")
-      if [ -f "$DEPLOYPATH/migrate.php" ]; then
-        $PHP_BIN "$DEPLOYPATH/migrate.php" migrate > "$DEPLOYPATH/migration.log" 2>&1
-      else
-        echo "migrate.php tidak ditemukan di $DEPLOYPATH" > "$DEPLOYPATH/migration.log"
-      fi
-
+    # 4) Jalankan script migrasi otomatis & catat ke migration.log
+    - /bin/bash "$DEPLOYPATH/deploy_migrate.sh"
